@@ -15,7 +15,13 @@ import {
   Layout,
   GitBranch,
   RefreshCw,
-  GitPullRequest
+  GitPullRequest,
+  ListTodo,
+  Rocket,
+  Webhook,
+  Activity,
+  Terminal,
+  FileCheck
 } from 'lucide-react';
 import { cn } from '../utils/ui';
 
@@ -59,6 +65,29 @@ export default function SettingsPage() {
     localStorage.setItem('github-linked', 'false');
     setGithubRepo('');
     localStorage.removeItem('github-repo');
+  };
+
+  // Linting State
+  const [lintingCategories, setLintingCategories] = React.useState({
+    Bugs: true,
+    Security: true,
+    Performance: true,
+    CodeQuality: true,
+  });
+  const [customRules, setCustomRules] = React.useState<{id: string, name: string, pattern: string}[]>([]);
+  const [newRuleName, setNewRuleName] = React.useState('');
+  const [newRulePattern, setNewRulePattern] = React.useState('');
+
+  // CI/CD State
+  const [ciProvider, setCiProvider] = React.useState('github-actions');
+  const [isCiEnabled, setIsCiCiEnabled] = React.useState(false);
+
+  const addCustomRule = () => {
+    if (newRuleName && newRulePattern) {
+      setCustomRules([...customRules, { id: Math.random().toString(36).substr(2, 9), name: newRuleName, pattern: newRulePattern }]);
+      setNewRuleName('');
+      setNewRulePattern('');
+    }
   };
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -133,6 +162,86 @@ export default function SettingsPage() {
                     <option>Go</option>
                  </select>
               </SettingItem>
+           </div>
+        </div>
+
+        {/* Linting Rules */}
+        <div className="space-y-3">
+           <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 px-2">Linting & Rules</h3>
+           <div className="rounded-2xl bg-[#0F0F12] border border-slate-800/50 divide-y divide-slate-800/50">
+              <div className="p-6">
+                 <h4 className="font-bold text-slate-100 mb-4 flex items-center gap-2">
+                    <Shield className="w-4 h-4 text-purple-400" />
+                    Analysis Categories
+                 </h4>
+                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {Object.entries(lintingCategories).map(([cat, enabled]) => (
+                       <button
+                         key={cat}
+                         onClick={() => setLintingCategories({...lintingCategories, [cat]: !enabled})}
+                         className={cn(
+                           "flex flex-col items-center gap-2 p-4 rounded-xl border transition-all text-center",
+                           enabled ? "bg-purple-500/10 border-purple-500/30 text-purple-400" : "bg-slate-900/50 border-slate-800 text-slate-500 hover:border-slate-700"
+                         )}
+                       >
+                          <FileCheck className={cn("w-6 h-6", enabled ? "text-purple-400" : "text-slate-600")} />
+                          <span className="text-[10px] font-bold uppercase tracking-widest">{cat}</span>
+                       </button>
+                    ))}
+                 </div>
+              </div>
+
+              <div className="p-6 space-y-6">
+                 <div>
+                    <h4 className="font-bold text-slate-100 mb-2 flex items-center gap-2">
+                       <ListTodo className="w-4 h-4 text-blue-400" />
+                       Custom Regex Rules
+                    </h4>
+                    <p className="text-sm text-slate-500 mb-4">Define patterns to detect specific code anti-patterns or business-logic violations.</p>
+                 </div>
+                 
+                 <div className="space-y-3">
+                    {customRules.map(rule => (
+                       <div key={rule.id} className="flex items-center justify-between p-3 rounded-lg bg-slate-900 border border-slate-800">
+                          <div className="flex-1">
+                             <p className="text-xs font-bold text-slate-200">{rule.name}</p>
+                             <code className="text-[10px] text-slate-500 font-mono">{rule.pattern}</code>
+                          </div>
+                          <button 
+                            onClick={() => setCustomRules(customRules.filter(r => r.id !== rule.id))}
+                            className="p-1.5 rounded-lg hover:bg-rose-500/10 text-slate-600 hover:text-rose-500 transition-all"
+                          >
+                             <Trash2 className="w-4 h-4" />
+                          </button>
+                       </div>
+                    ))}
+                 </div>
+
+                 <div className="flex gap-3">
+                    <div className="flex-1 space-y-2">
+                       <input 
+                         type="text" 
+                         placeholder="Rule Name (e.g. No Hardcoded IPs)"
+                         value={newRuleName}
+                         onChange={(e) => setNewRuleName(e.target.value)}
+                         className="w-full bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-xs focus:outline-none focus:ring-1 focus:ring-purple-500/50"
+                       />
+                       <input 
+                         type="text" 
+                         placeholder="Regex Pattern (e.g. \b\d{1,3}\.\d{1,3}\b)"
+                         value={newRulePattern}
+                         onChange={(e) => setNewRulePattern(e.target.value)}
+                         className="w-full bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-purple-500/50"
+                       />
+                    </div>
+                    <button 
+                      onClick={addCustomRule}
+                      className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-bold transition-all h-fit self-end"
+                    >
+                       Add Rule
+                    </button>
+                 </div>
+              </div>
            </div>
         </div>
 
@@ -225,6 +334,82 @@ export default function SettingsPage() {
                     <ChevronRight className="w-4 h-4" />
                  </button>
               </SettingItem>
+
+              <div className="p-6 pt-0 space-y-4">
+                 <div className="flex items-start gap-6 pt-6 border-t border-slate-800/50">
+                    <div className="w-10 h-10 rounded-xl bg-slate-800/50 flex items-center justify-center text-slate-400 shrink-0">
+                       <Rocket className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1 space-y-1">
+                       <h4 className="font-bold text-slate-100">CI/CD Pipelines</h4>
+                       <p className="text-sm text-slate-500 max-w-lg">
+                          Automatically trigger code reviews on every commit or pull request.
+                       </p>
+                    </div>
+                    <div className="shrink-0">
+                       <button 
+                         onClick={() => setIsCiCiEnabled(!isCiEnabled)}
+                         className={cn(
+                           "px-4 py-2 rounded-lg border text-sm font-medium transition-all",
+                           isCiEnabled ? "bg-emerald-500/10 border-emerald-500/50 text-emerald-400" : "border-slate-800 text-slate-400 hover:bg-slate-800"
+                         )}
+                       >
+                          {isCiEnabled ? 'Enabled' : 'Enable Pipeline'}
+                       </button>
+                    </div>
+                 </div>
+
+                 {isCiEnabled && (
+                    <div className="pt-4 mt-4 border-t border-slate-800/50 space-y-6 animate-in slide-in-from-top-2 duration-300">
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                             <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Provider</label>
+                             <select 
+                               value={ciProvider}
+                               onChange={(e) => setCiProvider(e.target.value)}
+                               className="w-full bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-purple-500/50"
+                             >
+                                <option value="github-actions">GitHub Actions</option>
+                                <option value="gitlab-ci">GitLab CI</option>
+                                <option value="circle-ci">CircleCI</option>
+                             </select>
+                          </div>
+                          <div className="space-y-2">
+                             <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Webhook Status</label>
+                             <div className="flex items-center gap-2 py-2 px-3 rounded-lg bg-slate-900/50 border border-slate-800 border-dashed">
+                                <Activity className="w-3.5 h-3.5 text-emerald-500 animate-pulse" />
+                                <span className="text-xs text-slate-400">Listening for events...</span>
+                             </div>
+                          </div>
+                       </div>
+                       
+                       <div className="space-y-2">
+                          <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Endpoint URL</label>
+                          <div className="flex gap-2">
+                             <input 
+                               type="text" 
+                               readOnly
+                               value={`https://api.codefix.ai/hooks/${ciProvider}/v1/trigger`}
+                               className="flex-1 bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-[10px] font-mono text-slate-500 focus:outline-none"
+                             />
+                             <button className="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-bold transition-all">
+                                Copy
+                             </button>
+                          </div>
+                       </div>
+
+                       <div className="p-4 rounded-xl bg-blue-500/5 border border-blue-500/10 flex items-start gap-3">
+                          <Webhook className="w-4 h-4 text-blue-400 mt-0.5" />
+                          <div>
+                             <p className="text-xs font-bold text-slate-200">Automatic Review Policy</p>
+                             <p className="text-[10px] text-slate-500 mt-1">
+                                Reviews will be triggered on <code>push</code> and <code>pull_request</code> events for all branches.
+                             </p>
+                          </div>
+                       </div>
+                    </div>
+                 )}
+              </div>
            </div>
         </div>
 
