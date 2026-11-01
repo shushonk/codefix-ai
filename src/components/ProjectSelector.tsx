@@ -7,15 +7,11 @@ interface ProjectSelectorProps {
   onSelect: (id: string) => void;
 }
 
-const projects = [
-  { id: '1', name: 'API Gateway', language: 'Go' },
-  { id: '2', name: 'Auth Module', language: 'Python' },
-  { id: '3', name: 'UI Dashboard', language: 'TypeScript' },
-];
+import { SAMPLE_PROJECTS } from '../data/samples';
 
 export default function ProjectSelector({ currentProject, onSelect }: ProjectSelectorProps) {
   const [isOpen, setIsOpen] = React.useState(false);
-  const selected = projects.find(p => p.id === currentProject) || projects[0];
+  const selected = SAMPLE_PROJECTS.find(p => p.id === currentProject) || SAMPLE_PROJECTS[0];
 
   return (
     <div className="relative">
@@ -35,7 +31,7 @@ export default function ProjectSelector({ currentProject, onSelect }: ProjectSel
           <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
           <div className="absolute top-full left-0 mt-2 w-64 bg-[#0F0F12] border border-slate-800 rounded-xl shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <div className="p-2 space-y-1">
-              {projects.map((p) => (
+              {SAMPLE_PROJECTS.map((p) => (
                 <button
                   key={p.id}
                   onClick={() => {

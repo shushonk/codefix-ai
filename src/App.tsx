@@ -24,13 +24,19 @@ import ReviewHistory from './pages/ReviewHistory';
 import SettingsPage from './pages/SettingsPage';
 import CommandPalette from './components/CommandPalette';
 import ProjectSelector from './components/ProjectSelector';
+import Toast, { ToastType } from './components/Toast';
 import { useKeyShortcuts } from './hooks/useKeyShortcuts';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
-  const [currentProject, setCurrentProject] = useState('1');
+  const [currentProject, setCurrentProject] = useState('python-security-lab');
+  const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
+
+  const showToast = (message: string, type: ToastType = 'info') => {
+    setToast({ message, type });
+  };
 
   useKeyShortcuts({
     'cmd+k': () => setIsPaletteOpen(true),
@@ -146,7 +152,7 @@ export default function App() {
         {/* Viewport */}
         <div className="p-8 max-w-7xl mx-auto">
           {activeTab === 'dashboard' && <Dashboard />}
-          {activeTab === 'review' && <CodeReview />}
+          {activeTab === 'review' && <CodeReview currentProjectId={currentProject} onShowToast={showToast} />}
           {activeTab === 'bugfixer' && <BugFixer />}
           {activeTab === 'security' && <SecurityAnalysis />}
           {activeTab === 'history' && <ReviewHistory />}
@@ -159,6 +165,14 @@ export default function App() {
         onClose={() => setIsPaletteOpen(false)} 
         onNavigate={setActiveTab} 
       />
+
+      {toast && (
+        <Toast 
+          message={toast.message} 
+          type={toast.type} 
+          onClose={() => setToast(null)} 
+        />
+      )}
     </div>
   );
 }

@@ -111,6 +111,39 @@ async function startServer() {
     }
   });
 
+  app.post('/api/chat', async (req, res) => {
+    try {
+      const { messages, code, language, context } = req.body;
+      
+      const response = await ai.models.generateContent({
+        model: 'gemini-3.8-flash',
+        contents: [
+          {
+            role: 'user',
+            parts: [{ text: `You are an expert software engineer assistant. You have access to the following code snippet:
+            
+            Language: ${language}
+            Code:
+            ${code}
+            
+            Context: ${context || 'General code review and assistance.'}
+            
+            Please answer the user's follow-up questions or perform the requested tasks (refactoring, documentation, etc.) based on this code.` }]
+          },
+          ...messages.map((m: any) => ({
+            role: m.role === 'user' ? 'user' : 'model',
+            parts: [{ text: m.content }]
+          }))
+        ],
+      });
+
+      res.json({ content: response.text });
+    } catch (error: any) {
+      console.error('Chat error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   if (!isProd) {
     const vite = await createViteServer({
       server: { middlewareMode: true },

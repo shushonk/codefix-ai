@@ -9,22 +9,45 @@ interface FileNode {
   path: string;
 }
 
-const SAMPLE_TREE: FileNode[] = [
-  {
-    name: 'src',
-    type: 'folder',
-    path: 'src',
-    children: [
-      { name: 'auth.py', type: 'file', path: 'src/auth.py' },
-      { name: 'utils.py', type: 'file', path: 'src/utils.py' },
-    ]
-  },
-  { name: 'requirements.txt', type: 'file', path: 'requirements.txt' },
-  { name: 'README.md', type: 'file', path: 'README.md' },
-];
+interface FileExplorerProps {
+  files: { path: string }[];
+  onSelectFile: (path: string) => void;
+}
 
-export default function FileExplorer({ onSelectFile }: { onSelectFile: (path: string) => void }) {
-  const [expanded, setExpanded] = React.useState<Record<string, boolean>>({ 'src': true });
+export default function FileExplorer({ files, onSelectFile }: FileExplorerProps) {
+  const [expanded, setExpanded] = React.useState<Record<string, boolean>>({});
+  const [searchQuery, setSearchQuery] = React.useState('');
+
+  const buildTree = (paths: string[]) => {
+    const root: FileNode[] = [];
+    paths.forEach(path => {
+      const parts = path.split('/');
+      let currentLevel = root;
+      let currentPath = '';
+
+      parts.forEach((part, index) => {
+        currentPath = currentPath ? `${currentPath}/${part}` : part;
+        const isFile = index === parts.length - 1;
+        let node = currentLevel.find(n => n.name === part);
+
+        if (!node) {
+          node = {
+            name: part,
+            type: isFile ? 'file' : 'folder',
+            path: currentPath,
+            children: isFile ? undefined : []
+          };
+          currentLevel.push(node);
+        }
+        if (!isFile) {
+          currentLevel = node.children!;
+        }
+      });
+    });
+    return root;
+  };
+
+  const tree = React.useMemo(() => buildTree(files.map(f => f.path)), [files]);
 
   const toggleFolder = (path: string) => {
     setExpanded(prev => ({ ...prev, [path]: !prev[path] }));
@@ -72,11 +95,13 @@ export default function FileExplorer({ onSelectFile }: { onSelectFile: (path: st
             type="text" 
             placeholder="Search files..."
             className="w-full bg-slate-900/50 border border-slate-800 rounded-lg py-1.5 pl-9 pr-3 text-xs focus:outline-none focus:ring-1 focus:ring-purple-500/50 transition-all"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
       </div>
       <div className="flex-1 overflow-y-auto p-2">
-        {SAMPLE_TREE.map(node => renderNode(node))}
+        {tree.map(node => renderNode(node))}
       </div>
     </div>
   );

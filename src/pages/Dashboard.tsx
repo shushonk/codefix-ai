@@ -9,7 +9,9 @@ import {
   TrendingUp,
   AlertCircle,
   Plus,
-  ChevronRight
+  ChevronRight,
+  ChevronDown,
+  Download
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -26,27 +28,27 @@ import {
 import { cn } from '../utils/ui';
 
 const stats = [
-  { label: 'Files Reviewed', value: '124', icon: FileSearch, color: 'text-blue-400', bg: 'bg-blue-400/10' },
-  { label: 'Issues Detected', value: '38', icon: AlertCircle, color: 'text-amber-400', bg: 'bg-amber-400/10' },
-  { label: 'Security Risks', value: '12', icon: ShieldAlert, color: 'text-rose-400', bg: 'bg-rose-400/10' },
-  { label: 'Bugs Fixed', value: '24', icon: CheckCircle2, color: 'text-emerald-400', bg: 'bg-emerald-400/10' },
+  { label: 'Files Reviewed', value: '4,281', icon: FileSearch, color: 'text-blue-400', bg: 'bg-blue-400/10' },
+  { label: 'Issues Detected', value: '1,892', icon: AlertCircle, color: 'text-amber-400', bg: 'bg-amber-400/10' },
+  { label: 'Security Risks', value: '412', icon: ShieldAlert, color: 'text-rose-400', bg: 'bg-rose-400/10' },
+  { label: 'Bugs Fixed', value: '1,240', icon: CheckCircle2, color: 'text-emerald-400', bg: 'bg-emerald-400/10' },
 ];
 
 const severityData = [
-  { name: 'Critical', value: 4, color: '#F43F5E' },
-  { name: 'High', value: 8, color: '#FB923C' },
-  { name: 'Medium', value: 15, color: '#FBBF24' },
-  { name: 'Low', value: 11, color: '#38BDF8' },
+  { name: 'Critical', value: 142, color: '#F43F5E' },
+  { name: 'High', value: 384, color: '#FB923C' },
+  { name: 'Medium', value: 715, color: '#FBBF24' },
+  { name: 'Low', value: 651, color: '#38BDF8' },
 ];
 
 const activityData = [
-  { day: 'Mon', issues: 4 },
-  { day: 'Tue', issues: 7 },
-  { day: 'Wed', issues: 5 },
-  { day: 'Thu', issues: 12 },
-  { day: 'Fri', issues: 8 },
-  { day: 'Sat', issues: 2 },
-  { day: 'Sun', issues: 3 },
+  { day: 'Mon', issues: 142 },
+  { day: 'Tue', issues: 217 },
+  { day: 'Wed', issues: 195 },
+  { day: 'Thu', issues: 312 },
+  { day: 'Fri', issues: 258 },
+  { day: 'Sat', issues: 92 },
+  { day: 'Sun', issues: 103 },
 ];
 
 export default function Dashboard() {
@@ -57,10 +59,51 @@ export default function Dashboard() {
           <h1 className="text-3xl font-bold tracking-tight mb-2">Workbench Overview</h1>
           <p className="text-slate-500">Welcome back. Your code quality metrics are trending upward.</p>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-medium transition-all shadow-lg shadow-purple-500/20">
-          <Plus className="w-4 h-4" />
-          <span>New Review</span>
-        </button>
+        <div className="flex items-center gap-3">
+          <div className="relative group">
+            <button 
+              className="flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-800 text-sm font-medium hover:bg-slate-800 transition-all text-slate-400 hover:text-slate-100"
+            >
+              <Download className="w-4 h-4" />
+              <span>Download Report</span>
+              <ChevronDown className="w-3.5 h-3.5" />
+            </button>
+            <div className="absolute top-full right-0 mt-2 w-48 bg-[#0F0F12] border border-slate-800 rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 overflow-hidden">
+               <button 
+                 onClick={() => {
+                   const report = {
+                     stats: stats.map(s => ({ label: s.label, value: s.value })),
+                     severity: severityData,
+                     activity: activityData,
+                     generatedAt: new Date().toISOString()
+                   };
+                   const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+                   const url = URL.createObjectURL(blob);
+                   const a = document.createElement('a');
+                   a.href = url;
+                   a.download = `codefix-analysis-${new Date().getTime()}.json`;
+                   a.click();
+                 }}
+                 className="w-full px-4 py-2.5 text-left text-sm text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-all border-b border-slate-800"
+               >
+                 Export as JSON
+               </button>
+               <button 
+                 onClick={() => {
+                   // Mock PDF generation via print
+                   window.print();
+                 }}
+                 className="w-full px-4 py-2.5 text-left text-sm text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-all"
+               >
+                 Export as PDF (Print)
+               </button>
+            </div>
+          </div>
+          <button className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-medium transition-all shadow-lg shadow-purple-500/20">
+            <Plus className="w-4 h-4" />
+            <span>New Review</span>
+          </button>
+        </div>
       </div>
 
       {/* Stats Grid */}
@@ -154,8 +197,8 @@ export default function Dashboard() {
               </PieChart>
             </ResponsiveContainer>
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-              <span className="text-2xl font-bold">38</span>
-              <span className="text-[10px] text-slate-500 uppercase tracking-widest">Total</span>
+              <span className="text-2xl font-bold">1,892</span>
+              <span className="text-[10px] text-slate-500 uppercase tracking-widest">Total Issues</span>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4 mt-4">
