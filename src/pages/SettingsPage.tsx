@@ -68,26 +68,66 @@ export default function SettingsPage() {
   };
 
   // Linting State
-  const [lintingCategories, setLintingCategories] = React.useState({
-    Bugs: true,
-    Security: true,
-    Performance: true,
-    CodeQuality: true,
+  interface LintingCategories {
+    Bugs: boolean;
+    Security: boolean;
+    Performance: boolean;
+    CodeQuality: boolean;
+  }
+
+  const [lintingCategories, setLintingCategories] = React.useState<LintingCategories>(() => {
+    const saved = localStorage.getItem('linting-categories');
+    return saved ? JSON.parse(saved) : {
+      Bugs: true,
+      Security: true,
+      Performance: true,
+      CodeQuality: true,
+    };
   });
-  const [customRules, setCustomRules] = React.useState<{id: string, name: string, pattern: string}[]>([]);
+
+  const [customRules, setCustomRules] = React.useState<{id: string, name: string, pattern: string}[]>(() => {
+    const saved = localStorage.getItem('custom-rules');
+    return saved ? JSON.parse(saved) : [];
+  });
+
   const [newRuleName, setNewRuleName] = React.useState('');
   const [newRulePattern, setNewRulePattern] = React.useState('');
 
   // CI/CD State
-  const [ciProvider, setCiProvider] = React.useState('github-actions');
-  const [isCiEnabled, setIsCiCiEnabled] = React.useState(false);
+  const [ciProvider, setCiProvider] = React.useState(() => localStorage.getItem('ci-provider') || 'github-actions');
+  const [isCiEnabled, setIsCiCiEnabled] = React.useState(() => localStorage.getItem('ci-enabled') === 'true');
+
+  const toggleCategory = (cat: string) => {
+    const updated = { ...lintingCategories, [cat]: !lintingCategories[cat as keyof typeof lintingCategories] };
+    setLintingCategories(updated);
+    localStorage.setItem('linting-categories', JSON.stringify(updated));
+  };
 
   const addCustomRule = () => {
     if (newRuleName && newRulePattern) {
-      setCustomRules([...customRules, { id: Math.random().toString(36).substr(2, 9), name: newRuleName, pattern: newRulePattern }]);
+      const updated = [...customRules, { id: Math.random().toString(36).substr(2, 9), name: newRuleName, pattern: newRulePattern }];
+      setCustomRules(updated);
+      localStorage.setItem('custom-rules', JSON.stringify(updated));
       setNewRuleName('');
       setNewRulePattern('');
     }
+  };
+
+  const removeCustomRule = (id: string) => {
+    const updated = customRules.filter(r => r.id !== id);
+    setCustomRules(updated);
+    localStorage.setItem('custom-rules', JSON.stringify(updated));
+  };
+
+  const toggleCI = () => {
+    const next = !isCiEnabled;
+    setIsCiCiEnabled(next);
+    localStorage.setItem('ci-enabled', String(next));
+  };
+
+  const handleCiProviderChange = (provider: string) => {
+    setCiProvider(provider);
+    localStorage.setItem('ci-provider', provider);
   };
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -167,7 +207,7 @@ export default function SettingsPage() {
 
         {/* Linting Rules */}
         <div className="space-y-3">
-           <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 px-2">Linting & Rules</h3>
+           <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 px-2">Linting Rules</h3>
            <div className="rounded-2xl bg-[#0F0F12] border border-slate-800/50 divide-y divide-slate-800/50">
               <div className="p-6">
                  <h4 className="font-bold text-slate-100 mb-4 flex items-center gap-2">
@@ -176,17 +216,34 @@ export default function SettingsPage() {
                  </h4>
                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     {Object.entries(lintingCategories).map(([cat, enabled]) => (
-                       <button
-                         key={cat}
-                         onClick={() => setLintingCategories({...lintingCategories, [cat]: !enabled})}
-                         className={cn(
-                           "flex flex-col items-center gap-2 p-4 rounded-xl border transition-all text-center",
-                           enabled ? "bg-purple-500/10 border-purple-500/30 text-purple-400" : "bg-slate-900/50 border-slate-800 text-slate-500 hover:border-slate-700"
-                         )}
-                       >
-                          <FileCheck className={cn("w-6 h-6", enabled ? "text-purple-400" : "text-slate-600")} />
-                          <span className="text-[10px] font-bold uppercase tracking-widest">{cat}</span>
-                       </button>
+                       <div key={cat} className="space-y-2">
+                          <button
+                            onClick={() => toggleCategory(cat)}
+                            className={cn(
+                              "w-full flex flex-col items-center gap-2 p-4 rounded-xl border transition-all text-center",
+                              enabled ? "bg-purple-500/10 border-purple-500/30 text-purple-400" : "bg-slate-900/50 border-slate-800 text-slate-500 hover:border-slate-700"
+                            )}
+                          >
+                             <FileCheck className={cn("w-6 h-6", enabled ? "text-purple-400" : "text-slate-600")} />
+                             <span className="text-[10px] font-bold uppercase tracking-widest">{cat}</span>
+                          </button>
+                          {cat === 'Security' && enabled && (
+                             <div className="flex flex-col gap-1 px-1">
+                                <label className="flex items-center gap-2 text-[9px] text-slate-500 cursor-pointer hover:text-slate-300">
+                                   <input type="checkbox" defaultChecked className="rounded border-slate-800 bg-slate-900 text-purple-500 focus:ring-0 w-2.5 h-2.5" />
+                                   <span>Injection (SQL/OS)</span>
+                                </label>
+                                <label className="flex items-center gap-2 text-[9px] text-slate-500 cursor-pointer hover:text-slate-300">
+                                   <input type="checkbox" defaultChecked className="rounded border-slate-800 bg-slate-900 text-purple-500 focus:ring-0 w-2.5 h-2.5" />
+                                   <span>Broken Auth</span>
+                                </label>
+                                <label className="flex items-center gap-2 text-[9px] text-slate-500 cursor-pointer hover:text-slate-300">
+                                   <input type="checkbox" defaultChecked className="rounded border-slate-800 bg-slate-900 text-purple-500 focus:ring-0 w-2.5 h-2.5" />
+                                   <span>Data Exposure</span>
+                                </label>
+                             </div>
+                          )}
+                       </div>
                     ))}
                  </div>
               </div>
@@ -208,7 +265,7 @@ export default function SettingsPage() {
                              <code className="text-[10px] text-slate-500 font-mono">{rule.pattern}</code>
                           </div>
                           <button 
-                            onClick={() => setCustomRules(customRules.filter(r => r.id !== rule.id))}
+                            onClick={() => removeCustomRule(rule.id)}
                             className="p-1.5 rounded-lg hover:bg-rose-500/10 text-slate-600 hover:text-rose-500 transition-all"
                           >
                              <Trash2 className="w-4 h-4" />
@@ -245,19 +302,20 @@ export default function SettingsPage() {
            </div>
         </div>
 
-        {/* Integrations */}
+        {/* Integrations Panel */}
         <div className="space-y-3">
-           <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 px-2">Integrations</h3>
+           <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 px-2">Integrations Panel</h3>
            <div className="rounded-2xl bg-[#0F0F12] border border-slate-800/50 divide-y divide-slate-800/50">
+              {/* GitHub Connection */}
               <div className="p-6 space-y-4">
                  <div className="flex items-start gap-6">
                     <div className="w-10 h-10 rounded-xl bg-slate-800/50 flex items-center justify-center text-slate-400 shrink-0">
                        <Github className="w-5 h-5" />
                     </div>
                     <div className="flex-1 space-y-1">
-                       <h4 className="font-bold text-slate-100">GitHub Connection</h4>
+                       <h4 className="font-bold text-slate-100">GitHub Core</h4>
                        <p className="text-sm text-slate-500 max-w-lg">
-                          Link your GitHub account to sync repositories and automate pull requests.
+                          Connect your GitHub identity to enable source fetching and PR creation.
                        </p>
                     </div>
                     <div className="shrink-0">
@@ -280,81 +338,29 @@ export default function SettingsPage() {
                        )}
                     </div>
                  </div>
-
-                 {isGithubLinked && (
-                    <div className="pt-4 mt-4 border-t border-slate-800/50 space-y-4 animate-in slide-in-from-top-2 duration-300">
-                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                             <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Target Repository</label>
-                             <div className="relative">
-                                <GitBranch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" />
-                                <input 
-                                  type="text" 
-                                  placeholder="owner/repo-name"
-                                  value={repoUrl}
-                                  onChange={(e) => {
-                                     setGithubRepo(e.target.value);
-                                     localStorage.setItem('github-repo', e.target.value);
-                                  }}
-                                  className="w-full bg-slate-900 border border-slate-800 rounded-lg py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-1 focus:ring-purple-500/50"
-                                />
-                             </div>
-                          </div>
-                          <div className="space-y-2">
-                             <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Sync Mode</label>
-                             <select className="w-full bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-purple-500/50">
-                                <option>Automated (PRs)</option>
-                                <option>Manual Approval</option>
-                             </select>
-                          </div>
-                       </div>
-                       <div className="p-4 rounded-xl bg-purple-500/5 border border-purple-500/10 flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                             <GitPullRequest className="w-5 h-5 text-purple-400" />
-                             <div>
-                                <p className="text-xs font-bold text-slate-200">Active Syncing</p>
-                                <p className="text-[10px] text-slate-500 italic">CodeFix AI will suggest patches via PRs.</p>
-                             </div>
-                          </div>
-                          <button className="text-xs font-bold text-purple-400 hover:text-purple-300 transition-all">
-                             View PR History
-                          </button>
-                       </div>
-                    </div>
-                 )}
               </div>
 
-              <SettingItem 
-                icon={Key} 
-                title="External Scanner Keys" 
-                description="Optional API keys for additional static analysis tools like SonarQube or Snyk."
-              >
-                 <button className="flex items-center gap-2 text-purple-400 hover:text-purple-300 text-sm font-medium transition-all">
-                    <span>Manage Keys</span>
-                    <ChevronRight className="w-4 h-4" />
-                 </button>
-              </SettingItem>
-
-              <div className="p-6 pt-0 space-y-4">
-                 <div className="flex items-start gap-6 pt-6 border-t border-slate-800/50">
+              {/* CI/CD Pipelines */}
+              <div className="p-6 space-y-4">
+                 <div className="flex items-start gap-6">
                     <div className="w-10 h-10 rounded-xl bg-slate-800/50 flex items-center justify-center text-slate-400 shrink-0">
                        <Rocket className="w-5 h-5" />
                     </div>
                     <div className="flex-1 space-y-1">
-                       <h4 className="font-bold text-slate-100">CI/CD Pipelines</h4>
+                       <h4 className="font-bold text-slate-100">CI/CD Pipeline Automation</h4>
                        <p className="text-sm text-slate-500 max-w-lg">
-                          Automatically trigger code reviews on every commit or pull request.
+                          Automatically trigger reviews on new commits using external pipelines.
                        </p>
                     </div>
                     <div className="shrink-0">
                        <button 
-                         onClick={() => setIsCiCiEnabled(!isCiEnabled)}
+                         onClick={toggleCI}
                          className={cn(
                            "px-4 py-2 rounded-lg border text-sm font-medium transition-all",
                            isCiEnabled ? "bg-emerald-500/10 border-emerald-500/50 text-emerald-400" : "border-slate-800 text-slate-400 hover:bg-slate-800"
                          )}
                        >
-                          {isCiEnabled ? 'Enabled' : 'Enable Pipeline'}
+                          {isCiEnabled ? 'Active' : 'Enable Pipeline'}
                        </button>
                     </div>
                  </div>
@@ -363,10 +369,10 @@ export default function SettingsPage() {
                     <div className="pt-4 mt-4 border-t border-slate-800/50 space-y-6 animate-in slide-in-from-top-2 duration-300">
                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div className="space-y-2">
-                             <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Provider</label>
+                             <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">CI Provider</label>
                              <select 
                                value={ciProvider}
-                               onChange={(e) => setCiProvider(e.target.value)}
+                               onChange={(e) => handleCiProviderChange(e.target.value)}
                                className="w-full bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-purple-500/50"
                              >
                                 <option value="github-actions">GitHub Actions</option>
@@ -375,16 +381,16 @@ export default function SettingsPage() {
                              </select>
                           </div>
                           <div className="space-y-2">
-                             <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Webhook Status</label>
+                             <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Live Status</label>
                              <div className="flex items-center gap-2 py-2 px-3 rounded-lg bg-slate-900/50 border border-slate-800 border-dashed">
                                 <Activity className="w-3.5 h-3.5 text-emerald-500 animate-pulse" />
-                                <span className="text-xs text-slate-400">Listening for events...</span>
+                                <span className="text-xs text-slate-400">Listening for commits...</span>
                              </div>
                           </div>
                        </div>
                        
                        <div className="space-y-2">
-                          <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Endpoint URL</label>
+                          <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Trigger Webhook URL</label>
                           <div className="flex gap-2">
                              <input 
                                type="text" 
@@ -393,17 +399,41 @@ export default function SettingsPage() {
                                className="flex-1 bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-[10px] font-mono text-slate-500 focus:outline-none"
                              />
                              <button className="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-bold transition-all">
-                                Copy
+                                Copy URL
                              </button>
+                          </div>
+                       </div>
+
+                       <div className="space-y-2">
+                          <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Recent Automation Events</label>
+                          <div className="rounded-lg bg-[#0A0A0B] border border-slate-800 overflow-hidden">
+                             <div className="p-2 px-3 border-b border-slate-800 bg-slate-900/50 flex items-center justify-between">
+                                <span className="text-[9px] font-bold uppercase text-slate-500">Event History</span>
+                                <span className="text-[9px] text-emerald-500 font-mono italic">Real-time</span>
+                             </div>
+                             <div className="p-3 font-mono text-[10px] space-y-1 max-h-32 overflow-auto text-slate-500">
+                                <p className="text-slate-400 flex justify-between">
+                                   <span>[PUSH] main: 8a2f1b3 by vs999</span>
+                                   <span className="text-slate-600">2m ago</span>
+                                </p>
+                                <p className="flex justify-between">
+                                   <span>[PR] #142 opened by bot:codefix</span>
+                                   <span className="text-slate-600">1h ago</span>
+                                </p>
+                                <p className="flex justify-between">
+                                   <span>[HOOK] health-check successful</span>
+                                   <span className="text-slate-600">2h ago</span>
+                                </p>
+                             </div>
                           </div>
                        </div>
 
                        <div className="p-4 rounded-xl bg-blue-500/5 border border-blue-500/10 flex items-start gap-3">
                           <Webhook className="w-4 h-4 text-blue-400 mt-0.5" />
                           <div>
-                             <p className="text-xs font-bold text-slate-200">Automatic Review Policy</p>
+                             <p className="text-xs font-bold text-slate-200">Continuous Review Policy</p>
                              <p className="text-[10px] text-slate-500 mt-1">
-                                Reviews will be triggered on <code>push</code> and <code>pull_request</code> events for all branches.
+                                Automated reviews will post feedback to {ciProvider === 'gitlab-ci' ? 'GitLab MRs' : 'GitHub PRs'} on every commit.
                              </p>
                           </div>
                        </div>

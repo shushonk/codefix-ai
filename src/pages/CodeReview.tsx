@@ -178,9 +178,27 @@ export default function CodeReview({
     }
   ];
 
+  const [isAutoFixEnabled, setIsAutoFixEnabled] = useState(false);
+  const [isBulkFixing, setIsBulkFixing] = useState(false);
+
   const startAnalysis = () => {
     setIsAnalyzing(true);
-    setTimeout(() => setIsAnalyzing(false), 2000);
+    setTimeout(() => {
+      setIsAnalyzing(false);
+      if (isAutoFixEnabled && onShowToast) {
+        onShowToast('Auto-Fix enabled: 2 code quality issues patched automatically.', 'success');
+      }
+    }, 2000);
+  };
+
+  const handleBulkFix = () => {
+    setIsBulkFixing(true);
+    setTimeout(() => {
+      setIsBulkFixing(false);
+      if (onShowToast) {
+        onShowToast(`Successfully generated patches for ${findings.length} findings.`, 'success');
+      }
+    }, 2500);
   };
 
   return (
@@ -220,15 +238,28 @@ export default function CodeReview({
         <div className="flex-1 overflow-y-auto">
           {leftTab === 'explorer' && <FileExplorer files={project.files} onSelectFile={setSelectedFilePath} />}
           {leftTab === 'findings' && (
-            <div className="divide-y divide-slate-800/50">
-              {findings.map(f => (
-                <FindingCard 
-                  key={f.id} 
-                  finding={f} 
-                  active={selectedFinding?.id === f.id} 
-                  onClick={() => setSelectedFinding(f)} 
-                />
-              ))}
+            <div className="flex flex-col h-full overflow-hidden">
+              <div className="p-3 border-b border-slate-800/50 flex items-center justify-between bg-slate-900/20 shrink-0">
+                 <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{findings.length} findings found</span>
+                 <button 
+                   onClick={handleBulkFix}
+                   disabled={isBulkFixing || findings.length === 0}
+                   className="flex items-center gap-1.5 px-2 py-1 rounded bg-purple-500/10 text-purple-400 border border-purple-500/20 text-[10px] font-bold hover:bg-purple-500/20 transition-all disabled:opacity-50"
+                 >
+                    {isBulkFixing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Wand2 className="w-3 h-3" />}
+                    <span>Fix All Visible</span>
+                 </button>
+              </div>
+              <div className="divide-y divide-slate-800/50 overflow-y-auto">
+                {findings.map(f => (
+                  <FindingCard 
+                    key={f.id} 
+                    finding={f} 
+                    active={selectedFinding?.id === f.id} 
+                    onClick={() => setSelectedFinding(f)} 
+                  />
+                ))}
+              </div>
             </div>
           )}
           {leftTab === 'testing' && (
@@ -347,9 +378,24 @@ export default function CodeReview({
       {/* Right Sidebar: AI Assistant & Chat */}
       <div className="w-96 border-l border-slate-800/50 bg-[#0F0F12] flex flex-col">
         <div className="p-4 border-b border-slate-800/50 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-purple-400" />
-            <h3 className="font-bold">AI Assistant</h3>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-purple-400" />
+              <h3 className="font-bold">AI Assistant</h3>
+            </div>
+            <div className="w-px h-4 bg-slate-800" />
+            <button 
+              onClick={() => setIsAutoFixEnabled(!isAutoFixEnabled)}
+              className={cn(
+                "flex items-center gap-1.5 px-2 py-0.5 rounded-full border transition-all text-[9px] font-bold uppercase tracking-wider",
+                isAutoFixEnabled 
+                  ? "bg-emerald-500/10 border-emerald-500/50 text-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.2)]" 
+                  : "border-slate-800 text-slate-500 hover:border-slate-700"
+              )}
+            >
+              <Zap className={cn("w-2.5 h-2.5", isAutoFixEnabled ? "fill-emerald-400" : "")} />
+              <span>Auto-Fix</span>
+            </button>
           </div>
           {messages.length > 0 && (
             <button 
